@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+audio_dev/
+*.wav
+*.mp3
+*.flac
+*.safetensors
+*.pt
+*.bin
+.venv/
