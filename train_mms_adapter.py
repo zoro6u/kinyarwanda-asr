@@ -42,7 +42,7 @@ import requests
 import torch
 import transformers
 from datasets import Dataset
-from huggingface_hub import HfApi, hf_hub_download
+from huggingface_hub import HfApi, hf_hub_download, login
 from safetensors.torch import load_file, save_file
 from transformers import AutoProcessor, Trainer, TrainingArguments, Wav2Vec2ForCTC, set_seed
 
@@ -180,18 +180,24 @@ def main():
     random.seed(SEED); np.random.seed(SEED); set_seed(SEED)
     from kaggle_secrets import UserSecretsClient
     hf_token = UserSecretsClient().get_secret("HF_TOKEN")
+    # mbazaNLP/fleurs-kinyarwanda is a GATED dataset: authenticate before any download,
+    # with a token whose account has been granted access to it.
+    login(token=hf_token)
 
-    # data -----------------------------------------------------------------
+    # evaluation data FIRST: it is small, and an auth/access problem should fail in
+    # the first minute, not after the long Common Voice streaming below.
+    fleurs = load_fleurs_dev()
+    refs = fleurs["normalized_transcription"].tolist()
+    paths = fleurs["local_audio_path"].tolist()
+
+    # training data --------------------------------------------------------
     url = get_download_url()
     train_df, dev_df = read_tsvs(url)
     tr, va = train_df.head(N_TRAIN).copy(), dev_df.head(N_VAL).copy()
     fetch_audio(url, set(tr["path"]) | set(va["path"]), f"{WORK}/train_audio")
-    for d, col in ((tr, "sentence"), (va, "sentence")):
+    for d in (tr, va):
         d["local_audio_path"] = d["path"].apply(lambda p: f"{WORK}/train_audio/{p}")
-        d["normalized_sentence"] = d[col].apply(normalize_text)
-    fleurs = load_fleurs_dev()
-    refs = fleurs["normalized_transcription"].tolist()
-    paths = fleurs["local_audio_path"].tolist()
+        d["normalized_sentence"] = d["sentence"].apply(normalize_text)
 
     # baseline: MMS with its own pretrained 'kin' adapter (before any training here)
     processor, model = load_mms()
