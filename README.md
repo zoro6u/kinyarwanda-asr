@@ -131,6 +131,35 @@ recorded in [`results/run_meta.json`](results/run_meta.json).
 - A single anecdotal observation (English loanwords such as "gypsy" being
   mis-transcribed by the pretrained MMS model) was not evaluated systematically.
 
+## Run the fine-tuned model (no Hugging Face Space)
+
+The adapter is published at
+[`zoro6u/mms-1b-kinyarwanda-adapter-3k`](https://huggingface.co/zoro6u/mms-1b-kinyarwanda-adapter-3k).
+It scores 45.5% WER / 18.9% CER on the full dev set (pretrained adapter: 49.4% /
+19.8%; all figures from [`results/run_meta.json`](results/run_meta.json)). Expect a
+~3.9 GB download of the base model on first use; CPU is enough.
+
+**Notebook:** [`notebooks/demo.ipynb`](notebooks/demo.ipynb) loads the model in the
+same sequence as the model card's Usage section and transcribes one file. It pins
+`transformers==5.16.1` and needs `ffmpeg` (used instead of librosa to decode and
+resample the audio).
+
+**Docker (HTTP API):** the same model is an option in
+[asr-api](https://github.com/zoro6u/asr-api) via `MODEL=mms-kin`:
+
+```bash
+git clone https://github.com/zoro6u/asr-api.git && cd asr-api
+docker build --build-arg MODEL=mms-kin -t asr-api:mms-kin .   # bakes in ~3.9 GB
+docker run -p 8000:8000 asr-api:mms-kin
+curl -X POST http://127.0.0.1:8000/transcribe/ -F 'file=@clip.wav;type=audio/wav'
+curl http://127.0.0.1:8000/status/<job_id>
+```
+
+To skip the download inside the build when `~/.cache/huggingface` already holds the
+models, build the default image (`docker build -t asr-api .`) and run it with
+`-e MODEL=mms-kin -e HF_HUB_OFFLINE=1 -v ~/.cache/huggingface:/root/.cache/huggingface:ro`
+(add `--security-opt label=disable` on SELinux systems such as Fedora).
+
 ## Setup
 
 ```bash
@@ -143,6 +172,7 @@ pip install transformers soundfile huggingface_hub pandas evaluate jiwer safeten
 
 ```bash
 python3 test_asr_metrics.py      # metric code checks (no GPU needed)
+python3 test_wer_ci.py           # WER on hand-written pairs + README/MODEL_CARD match run_meta.json (runs in CI)
 python3 mms_zeroshot.py          # pretrained-adapter baseline on the first 30 sentences
 ```
 
@@ -155,13 +185,13 @@ cleaned up for this repo.
 
 ## Artifacts and licence
 
-The fine-tuned adapter (8.6 MB, 2,151,168 trainable parameters) is currently in a
-private Hugging Face repository. When published it will carry **CC-BY-NC-4.0**,
-the licence of its base model `facebook/mms-1b-all` (Meta): attribution is
-required and use is **non-commercial only**. The adapter is adapted material
-derived from that model and should be treated as non-commercial; this is not
-legal advice. The published repository will not contain predictions or any
-FLEURS reference text. See [`MODEL_CARD.md`](MODEL_CARD.md).
+The fine-tuned adapter (8.6 MB, 2,151,168 trainable parameters) is published at
+[`zoro6u/mms-1b-kinyarwanda-adapter-3k`](https://huggingface.co/zoro6u/mms-1b-kinyarwanda-adapter-3k)
+under **CC-BY-NC-4.0**, the licence of its base model `facebook/mms-1b-all` (Meta):
+attribution is required and use is **non-commercial only**. The adapter is adapted
+material derived from that model and should be treated as non-commercial; this is
+not legal advice. The repository does not contain predictions or any FLEURS
+reference text. See [`MODEL_CARD.md`](MODEL_CARD.md).
 
 Common Voice is CC0-1.0. The FLEURS-style evaluation set has its own access
 conditions, and its reference text is not redistributed here.
