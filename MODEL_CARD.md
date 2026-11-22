@@ -75,7 +75,7 @@ processor = AutoProcessor.from_pretrained(BASE, target_lang="kin")
 model = Wav2Vec2ForCTC.from_pretrained(BASE, target_lang="kin", ignore_mismatched_sizes=True)
 model.load_adapter("kin")                       # the pretrained starting point
 
-path = hf_hub_download("<this-repo-id>", "adapter.kin.safetensors")
+path = hf_hub_download("zoro6u/mms-1b-kinyarwanda-adapter-3k", "adapter.kin.safetensors")
 result = model.load_state_dict(load_file(path), strict=False)
 assert not result.unexpected_keys               # only adapter tensors were saved
 

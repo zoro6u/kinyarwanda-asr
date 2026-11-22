@@ -1,0 +1,24 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Pure-Python checks: no torch, no model download, no audio.
+      - name: Install dependencies
+        run: pip install jiwer
+
+      - name: Metric checks
+        run: python3 test_asr_metrics.py
+
+      - name: WER / results consistency checks
+        run: python3 test_wer_ci.py
